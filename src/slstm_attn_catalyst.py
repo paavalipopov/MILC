@@ -1,13 +1,13 @@
 import os
 import random
 
-from catalyst import dl,metrics
+from catalyst import dl, metrics
 from catalyst.dl import (
     AccuracyCallback,
     AUCCallback,
     EarlyStoppingCallback,
     PrecisionRecallF1SupportCallback,
-    CheckpointCallback
+    CheckpointCallback,
 )
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -33,10 +33,8 @@ class CustomRunner(dl.Runner):
     def on_loader_start(self, runner):
         super().on_loader_start(runner)
         self.meters = {
-            key: metrics.AdditiveMetric(compute_on_call=False)
-            for key in ["loss"]
+            key: metrics.AdditiveMetric(compute_on_call=False) for key in ["loss"]
         }
-
 
     def predict_batch(self, batch):
         #    # model inference step
@@ -52,8 +50,6 @@ class CustomRunner(dl.Runner):
         mode = "test"
 
         sx, targets = batch.dataset.tensors
-        sx = sx.to(self.device)
-        targets = targets.to(self.device)
 
         logits = self.model(sx, mode)
 
@@ -96,7 +92,7 @@ class CustomRunner(dl.Runner):
             "targets": targets,
             "targets_one_hot": y_onehot,
             "logits": logits,
-            "loss": loss
+            "loss": loss,
         }
         self.batch_metrics.update({"loss": loss})
         for key in ["loss"]:
@@ -113,17 +109,15 @@ class CustomRunner(dl.Runner):
 
     def acc_and_auc(self, logits, mode, targets):
 
-        sig = torch.softmax(logits, dim=1).to(self.device)
+        sig = torch.softmax(logits, dim=1)
         values, indices = sig.max(1)
         roc = 0.0
         acc = 0.0
         # y_scores = sig.detach().gather(1, targets.to(self.device).long().view(-1,1))
         if mode == "eval" or mode == "test":
-            y_scores = sig.to(self.device).detach()[:, 1]
-            roc = roc_auc_score(targets.to("cpu"), y_scores.to("cpu"))
-        accuracy = calculate_accuracy_by_labels(
-            indices, targets.to(self.device)
-        )
+            y_scores = sig[:, 1]
+            roc = roc_auc_score(targets.detach().numpy(), y_scores.detach().numpy())
+        accuracy = calculate_accuracy_by_labels(indices, targets)
 
         return accuracy, roc
 
@@ -167,9 +161,7 @@ class CustomRunner(dl.Runner):
         loss = loss + lstm_loss + attn_loss
         return loss, CE_loss, E_loss, lstm_loss
 
-    def log_results(
-        self, epoch_loss, epoch_test_accuracy, epoch_roc, prefix=""
-    ):
+    def log_results(self, epoch_loss, epoch_test_accuracy, epoch_roc, prefix=""):
         print(
             "{}  Epoch Loss: {}, Epoch Accuracy: {}, roc: {},  {}".format(
                 prefix.capitalize(),
@@ -190,6 +182,7 @@ class LSTMTrainer(Trainer):
         tr_labels,
         val_labels,
         test_labels,
+        extra_test_labels,
         wandb=None,
         trial="",
         crossv="",
@@ -200,6 +193,7 @@ class LSTMTrainer(Trainer):
         self.model = model
         self.tr_labels = tr_labels
         self.test_labels = test_labels
+        self.extra_test_labels = extra_test_labels
         self.val_labels = val_labels
         self.tr_eps = ""
         self.val_eps = ""
@@ -279,20 +273,32 @@ class LSTMTrainer(Trainer):
             #     metric_key="loss"
             # ),
             EarlyStoppingCallback(
-                patience=15, metric_key="loss", loader_key="valid", minimize=True, min_delta=0
+                patience=15,
+                metric_key="loss",
+                loader_key="valid",
+                minimize=True,
+                min_delta=0,
             ),
-            AccuracyCallback(num_classes=2,input_key="logits", target_key="targets"),
+            AccuracyCallback(num_classes=2, input_key="logits", target_key="targets"),
             AUCCallback(input_key="logits", target_key="targets"),
-        #     CheckpointCallback(
-        #     "./logs", loader_key="valid", metric_key="loss", minimize=True, save_n_best=3,
-        #     # load_on_stage_start={"model": "best"},
-        #     load_on_stage_end={"model": "best"}
-        # ),
+            #     CheckpointCallback(
+            #     "./logs", loader_key="valid", metric_key="loss", minimize=True, save_n_best=3,
+            #     # load_on_stage_start={"model": "best"},
+            #     load_on_stage_end={"model": "best"}
+            # ),
         ]
 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer, mode="min"
         )
+
+        # print(self.tr_eps.shape)
+        # print(self.val_eps.shape)
+        # print(self.tst_eps.shape)
+        # print(self.tr_labels.shape)
+        # print(self.val_labels.shape)
+        # print(self.test_labels.shape)
+
         train_dataset = TensorDataset(self.tr_eps, self.tr_labels)
         val_dataset = TensorDataset(self.val_eps, self.val_labels)
         test_dataset = TensorDataset(self.tst_eps, self.test_labels)
@@ -307,12 +313,12 @@ class LSTMTrainer(Trainer):
                 shuffle=True,
             ),
             "valid": DataLoader(
-                val_dataset, batch_size=v_bs, num_workers=0, shuffle=True,
+                val_dataset,
+                batch_size=v_bs,
+                num_workers=0,
+                shuffle=True,
             ),
         }
-
-
-
 
         if self.complete_arc == True:
             if self.PT in ["milc", "two-loss-milc"]:
@@ -322,7 +328,7 @@ class LSTMTrainer(Trainer):
                         map_location=self.device,
                     )
                     model_dict = model_dict["model_state_dict"]
-                    print("Complete Arch Loaded")
+                    print("loading Complete Arch in LSTMTriner")
                     self.model.load_state_dict(model_dict)
         # num_features=2
         # model training
@@ -351,7 +357,7 @@ class LSTMTrainer(Trainer):
             # criterion=criterion,
             scheduler=scheduler,
             loaders=loaders,
-            valid_loader='valid',
+            valid_loader="valid",
             callbacks=callbacks,
             logdir="./logs",
             num_epochs=self.epochs,
@@ -362,9 +368,7 @@ class LSTMTrainer(Trainer):
         )
 
         loader = (
-            DataLoader(
-                test_dataset, batch_size=t_bs, num_workers=1, shuffle=True
-            ),
+            DataLoader(test_dataset, batch_size=t_bs, num_workers=1, shuffle=True),
         )
 
         (
@@ -373,11 +377,53 @@ class LSTMTrainer(Trainer):
             self.test_loss,
         ) = runner.predict_batch(next(iter(loader)))
 
-    def pre_train(self, tr_eps, val_eps, tst_eps):
+        self.extra_test_metrics = []
+
+        for i, _ in enumerate(self.extra_tst_eps):
+            test_accuracy = 0
+            test_auc = 0
+            test_loss = 0
+
+            extra_test_dataset = TensorDataset(
+                self.extra_tst_eps[i]["eps"], self.extra_test_labels[i]["labels"]
+            )
+            extra_t_bs = self.extra_tst_eps[i]["eps"].shape[0]
+            loader = (
+                DataLoader(
+                    extra_test_dataset,
+                    batch_size=extra_t_bs,
+                    num_workers=1,
+                    shuffle=True,
+                ),
+            )
+
+            (
+                test_accuracy,
+                test_auc,
+                test_loss,
+            ) = runner.predict_batch(next(iter(loader)))
+
+            self.extra_test_metrics.append(
+                {
+                    "name": self.extra_tst_eps[i]["name"],
+                    "test_accuracy": test_accuracy,
+                    "test_auc": test_auc,
+                    "test_loss": test_loss,
+                }
+            )
+
+    def pre_train(self, tr_eps, val_eps, tst_eps, extra_tst_eps):
         self.tr_eps = tr_eps
         self.val_eps = val_eps
         self.tst_eps = tst_eps
+        self.extra_tst_eps = extra_tst_eps
         # self.run_demo(self.train, 1)
         # utils.distributed_cmd_run(self.train)
         self.train()
-        return self.test_accuracy, self.test_auc, self.test_loss, 0
+        return (
+            self.test_accuracy,
+            self.test_auc,
+            self.test_loss,
+            0,
+            self.extra_test_metrics,
+        )
