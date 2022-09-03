@@ -24,6 +24,28 @@ pre_train_encoder_methods = ["basic", "milc"]
 def get_argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--ds",
+        type=str,
+        choices=["oasis", "abide", "fbirn", "cobre", "abide_869", "ukb", "bsnip"],
+        required=True,
+    )
+
+    parser.add_argument(
+        "--test-ds",
+        nargs="*",
+        type=str,
+        choices=[
+            "oasis",
+            "abide",
+            "fbirn",
+            "cobre",
+            "abide_869",
+            "ukb",
+            "bsnip",
+        ],
+    )
+
+    parser.add_argument(
         "--pre-training",
         type=str,
         default="milc",
@@ -33,6 +55,7 @@ def get_argparser():
     parser.add_argument("--fMRI-twoD", action="store_true", default=False)
     parser.add_argument("--deep", action="store_true", default=False)
     parser.add_argument("--complete_arc", action="store_true", default=True)
+    parser.add_argument("--no-complete_arc", dest="complete_arc", action="store_false")
     parser.add_argument(
         "--path",
         type=str,
@@ -82,9 +105,7 @@ def get_argparser():
         "--teststart-ID", type=int, default=1, help="Task Set Start Index ID"
     )
     parser.add_argument("--job-ID", type=int, default=1, help="Job Array ID")
-    parser.add_argument(
-        "--sample-number", type=int, default=0, help="Job Array ID"
-    )
+    parser.add_argument("--sample-number", type=int, default=0, help="Job Array ID")
     parser.add_argument(
         "--env-name",
         default="MontezumaRevengeNoFrameskip-v4",
@@ -160,12 +181,8 @@ def get_argparser():
         default=3000,
         help="Number of epochs for  (default: 100)",
     )
-    parser.add_argument(
-        "--cuda-id", type=int, default=1, help="CUDA device index"
-    )
-    parser.add_argument(
-        "--seed", type=int, default=42, help="Random seed to use"
-    )
+    parser.add_argument("--cuda-id", type=int, default=1, help="CUDA device index")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed to use")
     parser.add_argument(
         "--encoder-type",
         type=str,
@@ -183,9 +200,7 @@ def get_argparser():
     parser.add_argument("--entropy-threshold", type=float, default=0.6)
     parser.add_argument("--color", action="store_true", default=False)
     parser.add_argument("--end-with-relu", action="store_true", default=False)
-    parser.add_argument(
-        "--wandb-proj", type=str, default="curl-atari-neurips-scratch"
-    )
+    parser.add_argument("--wandb-proj", type=str, default="curl-atari-neurips-scratch")
     parser.add_argument("--num_rew_evals", type=int, default=10)
     # rl-probe specific arguments
     parser.add_argument("--checkpoint-index", type=int, default=-1)
@@ -373,7 +388,7 @@ class appendabledict(defaultdict):
             e.g. if this dictionary has {a:[1,2,3,4], b:[5,6,7,8]}, then self.subslice(2) returns {a:3,b:7}
                  self.subslice(slice(1,3)) returns {a:[2,3], b:[6,7]}
 
-         """
+        """
         sliced_dict = {}
         for k, v in self.items():
             sliced_dict[k] = v[slice_]
@@ -392,7 +407,7 @@ class appendabledict(defaultdict):
         -------
         Nothing. The side effect is this dict's values change
 
-         """
+        """
         for k, v in other_dict.items():
             self.__getitem__(k).append(v)
 
