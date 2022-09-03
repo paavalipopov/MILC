@@ -48,6 +48,7 @@ class combinedModel(nn.Module):
 
         self.init_weight()
         if self.complete_arc == False:
+            print("Loading complete arc in CombineModel")
             self.loadModels()
 
     def init_weight(self):
