@@ -1,5 +1,5 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+*__pycache__*
 *pytest_cache*
 *.py[cod]
 *$py.class
@@ -11,6 +11,8 @@ Data/bsnip/
 Data/cobre/
 Data/fbirn/
 Data/oasis/
+Data/adni/
+Data/hcp/
 
 # pycache and logs
 src/__pycache__/
@@ -152,3 +154,5 @@ _nogit*
 
 presets/
 _todo/
+
+Output/

@@ -27,9 +27,9 @@ pip install -r requirements.txt
 ```
 
 ### MILC downstream:
-Here's a sample example using pre-trained model for COBRE classification using 40 subjects per class for training: 
+Here's a sample example using pre-trained model for FBIRN
 
 ```bash
-python -m scripts.run_ica_experiments --pre-training milc --script-ID 3 --exp UFPT --method sub-lstm 
+python -m scripts.run_ica_experiments --pre-training milc --script-ID 3 --exp UFPT --method sub-lstm --ds fbirn --test-ds cobre bsnip --prefix updated
 ```
 Or run the jupyter notebook file with the same name. Requires installation of jupyter.
