@@ -39,14 +39,10 @@ class subjLSTM(nn.Module):
 
     def init_hidden(self, batch_size):
         h0 = Variable(
-            torch.zeros(
-                2, batch_size, self.hidden_dim // 2, device=self.device
-            )
+            torch.zeros(2, batch_size, self.hidden_dim // 2, device=self.device)
         )
         c0 = Variable(
-            torch.zeros(
-                2, batch_size, self.hidden_dim // 2, device=self.device
-            )
+            torch.zeros(2, batch_size, self.hidden_dim // 2, device=self.device)
         )
         return (h0, c0)
 

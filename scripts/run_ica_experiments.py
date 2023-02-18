@@ -15,16 +15,7 @@ from src.lstm_attn import subjLSTM
 from src.slstm_attn_catalyst import LSTMTrainer
 from src.utils import get_argparser
 
-from src.settings import LOGS_ROOT, ASSETS_ROOT, UTCNOW
-from src.ts_data import (
-    load_ABIDE1,
-    load_COBRE,
-    load_FBIRN,
-    load_OASIS,
-    load_ABIDE1_869,
-    load_UKB,
-    load_BSNIP,
-)
+from src.ts_data import load_dataset
 
 import torch
 import wandb
@@ -42,8 +33,8 @@ def train_encoder(args):
     for k in range(5):
         for my_trial in range(10):
             wandb_logger = wandb.init(
-                project=f"NPT-experiment-milc-{args.ds}",
-                name=f"{UTCNOW}-k_{k}-trial_{my_trial}",
+                project=f"{args.prefix}-experiment-milc-{args.ds}",
+                name=f"k_{k}-trial_{my_trial}",
                 save_code=True,
             )
 
@@ -77,21 +68,9 @@ def train_encoder(args):
             output_path = os.path.join(output_path, tfilename)
 
             ####### new
-            if args.ds == "oasis":
-                features, labels = load_OASIS()
-            elif args.ds == "abide":
-                features, labels = load_ABIDE1()
-            elif args.ds == "fbirn":
-                features, labels = load_FBIRN()
-            elif args.ds == "cobre":
-                features, labels = load_COBRE()
-            elif args.ds == "abide_869":
-                features, labels = load_ABIDE1_869()
-            elif args.ds == "ukb":
-                features, labels = load_UKB()
-            elif args.ds == "bsnip":
-                features, labels = load_BSNIP()
+            features, labels = load_dataset(args.ds)
             #######
+            # data_shape = features.shape
 
             ntrials = 1
             sample_x = 53
@@ -108,7 +87,7 @@ def train_encoder(args):
             ######
 
             samples_per_subject = int(tc / sample_y)
-            window_shift = 20
+            window_shift = 10
             if torch.cuda.is_available():
                 cudaID = str(torch.cuda.current_device())
                 device = torch.device("cuda:" + cudaID)
@@ -154,20 +133,7 @@ def train_encoder(args):
             extra_test_eps = []
             extra_test_labels = []
             for dataset in args.test_ds:
-                if dataset == "oasis":
-                    local_features, local_labels = load_OASIS()
-                elif dataset == "abide":
-                    local_features, local_labels = load_ABIDE1()
-                elif dataset == "fbirn":
-                    local_features, local_labels = load_FBIRN()
-                elif dataset == "cobre":
-                    local_features, local_labels = load_COBRE()
-                elif dataset == "abide_869":
-                    local_features, local_labels = load_ABIDE1_869()
-                elif dataset == "ukb":
-                    local_features, local_labels = load_UKB()
-                elif dataset == "bsnip":
-                    local_features, local_labels = load_BSNIP()
+                local_features, local_labels = load_dataset(dataset)
 
                 local_subjects = local_features.shape[0]
                 local_tc = local_features.shape[2]
@@ -238,6 +204,7 @@ def train_encoder(args):
                 # print(test_labels.shape)
 
                 observation_shape = finalData2.shape
+                print(f"OBSERVATION SPACE: {observation_shape}")
                 if args.encoder_type == "Nature":
                     encoder = NatureCNN(observation_shape[2], args)
 
@@ -299,9 +266,9 @@ def train_encoder(args):
 
                 wandb_logger.log(
                     {
-                        "train_accuracy": results[trial][0],
-                        "train_score": results[trial][1],
-                        "train_loss": results[trial][2],
+                        "test_accuracy": results[trial][0],
+                        "test_score": results[trial][1],
+                        "test_loss": results[trial][2],
                     },
                 )
 
@@ -309,9 +276,9 @@ def train_encoder(args):
                     wandb_logger.log(
                         {
                             extra_test["name"]
-                            + "_train_accuracy": extra_test["test_accuracy"],
-                            extra_test["name"] + "_train_score": extra_test["test_auc"],
-                            extra_test["name"] + "_train_loss": extra_test["test_loss"],
+                            + "_test_accuracy": extra_test["test_accuracy"],
+                            extra_test["name"] + "_test_score": extra_test["test_auc"],
+                            extra_test["name"] + "_test_loss": extra_test["test_loss"],
                         },
                     )
                 wandb_logger.finish()

@@ -20,13 +20,42 @@ probe_only_methods = [
 ]
 pre_train_encoder_methods = ["basic", "milc"]
 
+from src.settings import UTCNOW
+
 
 def get_argparser():
     parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--prefix",
+        type=str,
+        default=f"{UTCNOW}",
+        help="Prefix for the project name (body of the project name \
+            is '$mode-$model-$dataset'): default: UTC time",
+    )
+
     parser.add_argument(
         "--ds",
         type=str,
-        choices=["oasis", "abide", "fbirn", "cobre", "abide_869", "ukb", "bsnip"],
+        choices=[
+            "oasis",
+            "adni",
+            "abide",
+            "abide_869",
+            "abide_roi",
+            "fbirn",
+            "fbirn_100",
+            "fbirn_200",
+            "fbirn_400",
+            "fbirn_1000",
+            "cobre",
+            "bsnip",
+            "hcp",
+            "hcp_roi",
+            "ukb",
+            "ukb_age_bins",
+            "time_fbirn",
+        ],
         required=True,
     )
 
@@ -36,12 +65,22 @@ def get_argparser():
         type=str,
         choices=[
             "oasis",
+            "adni",
             "abide",
-            "fbirn",
-            "cobre",
             "abide_869",
-            "ukb",
+            "abide_roi",
+            "fbirn",
+            "fbirn_100",
+            "fbirn_200",
+            "fbirn_400",
+            "fbirn_1000",
+            "cobre",
             "bsnip",
+            "hcp",
+            "hcp_roi",
+            "ukb",
+            "ukb_age_bins",
+            "time_fbirn",
         ],
     )
 
