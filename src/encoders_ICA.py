@@ -90,7 +90,7 @@ class NatureOneCNN(nn.Module):
         bias_init(module.bias.data)
         return module
 
-    def __init__(self, input_channels, args):
+    def __init__(self, input_channels, device, args):
         super().__init__()
         self.feature_size = args.feature_size
         self.hidden_size = self.feature_size
@@ -138,6 +138,8 @@ class NatureOneCNN(nn.Module):
                 nn.ReLU(),
                 # nn.ReLU()
             )
+        
+        self.main = self.main.to(device)
         # self.train()
 
     def forward(self, inputs, fmaps=False, five=False):

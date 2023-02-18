@@ -69,6 +69,7 @@ def train_encoder(args):
 
             ####### new
             features, labels = load_dataset(args.ds)
+            features[features != features] = 0
             #######
             # data_shape = features.shape
 
@@ -134,6 +135,7 @@ def train_encoder(args):
             extra_test_labels = []
             for dataset in args.test_ds:
                 local_features, local_labels = load_dataset(dataset)
+                local_features[local_features != local_features] = 0
 
                 local_subjects = local_features.shape[0]
                 local_tc = local_features.shape[2]
@@ -215,7 +217,7 @@ def train_encoder(args):
                     elif args.pre_training == "milc":
                         args.oldpath = wpath1 + "/PreTrainedEncoders/Milc"
 
-                    encoder = NatureOneCNN(observation_shape[2], args)
+                    encoder = NatureOneCNN(observation_shape[2], device, args)
                     lstm_model = subjLSTM(
                         device,
                         args.feature_size,

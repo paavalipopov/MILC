@@ -36,7 +36,7 @@ class CustomRunner(dl.Runner):
             key: metrics.AdditiveMetric(compute_on_call=False) for key in ["loss"]
         }
 
-    def predict_batch(self, batch):
+    def predict_batch(self, batch, device = None):
         #    # model inference step
         epoch_loss, accuracy, steps, epoch_acc, epoch_roc = (
             0.0,
@@ -50,6 +50,7 @@ class CustomRunner(dl.Runner):
         mode = "test"
 
         sx, targets = batch.dataset.tensors
+        sx, targets = sx.to(device), targets.to(device)
 
         logits = self.model(sx, mode)
 
@@ -116,7 +117,7 @@ class CustomRunner(dl.Runner):
         # y_scores = sig.detach().gather(1, targets.to(self.device).long().view(-1,1))
         if mode == "eval" or mode == "test":
             y_scores = sig[:, 1]
-            roc = roc_auc_score(targets.detach().numpy(), y_scores.detach().numpy())
+            roc = roc_auc_score(targets.cpu().detach().numpy(), y_scores.cpu().detach().numpy())
         accuracy = calculate_accuracy_by_labels(indices, targets)
 
         return accuracy, roc
@@ -375,7 +376,7 @@ class LSTMTrainer(Trainer):
             self.test_accuracy,
             self.test_auc,
             self.test_loss,
-        ) = runner.predict_batch(next(iter(loader)))
+        ) = runner.predict_batch(next(iter(loader)), self.device)
 
         self.extra_test_metrics = []
 
@@ -401,7 +402,7 @@ class LSTMTrainer(Trainer):
                 test_accuracy,
                 test_auc,
                 test_loss,
-            ) = runner.predict_batch(next(iter(loader)))
+            ) = runner.predict_batch(next(iter(loader)), self.device)
 
             self.extra_test_metrics.append(
                 {
